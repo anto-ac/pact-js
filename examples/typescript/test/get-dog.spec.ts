@@ -4,9 +4,11 @@ import * as chaiAsPromised from "chai-as-promised"
 import path = require("path")
 import * as sinonChai from "sinon-chai"
 import { Pact, Interaction, Matchers } from "../../../src/pact"
+import { Dog, Kennel } from "./kennel";
 
 const expect = chai.expect
 import { DogService } from "../index"
+import { like } from "../../../src/dsl/matchers";
 const { eachLike } = Matchers
 
 chai.use(sinonChai)
@@ -26,8 +28,12 @@ describe("The Dog API", () => {
     pactfileWriteMode: "merge",
   })
 
-  const dogExample = { dog: 1 }
-  const EXPECTED_BODY = eachLike(dogExample)
+  const kennelExample: Kennel =
+  {
+    name: "my kennel",
+    dogs: eachLike<Dog>({name: "my dog"})
+  };
+  const EXPECTED_BODY = like(kennelExample)
 
   before(() =>
     provider.setup().then(opts => {
@@ -64,7 +70,7 @@ describe("The Dog API", () => {
 
     it("returns the correct response", done => {
       dogService.getMeDogs().then((response: any) => {
-        expect(response.data[0]).to.deep.eq(dogExample)
+        expect(response.data[0]).to.deep.eq(kennelExample)
         done()
       }, done)
     })
