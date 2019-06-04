@@ -3,13 +3,13 @@ import * as chai from "chai"
 import * as chaiAsPromised from "chai-as-promised"
 import path = require("path")
 import * as sinonChai from "sinon-chai"
-import { Pact, Interaction, Matchers } from "../../../src/pact"
-import { Dog, Kennel } from "./kennel";
+import { Pact, Interaction } from "../../../src/pact"
+import { Kennel } from "./kennel";
 
 const expect = chai.expect
 import { DogService } from "../index"
-import { like } from "../../../src/dsl/matchers";
-const { eachLike } = Matchers
+import { like, eachLike } from "./matchers";
+import { extractPayload } from "../../../src/dsl/matchers";
 
 chai.use(sinonChai)
 chai.use(chaiAsPromised)
@@ -28,17 +28,11 @@ describe("The Dog API", () => {
     pactfileWriteMode: "merge",
   })
 
-  const kennel: Kennel =
+  const kennel: Kennel = like(
   {
     name: "my kennel",
-    dogs: [{name: "my dog"}]
-  };
-
-  const kennelWithMatchers = like(
-    {
-      ...kennel,
-      dogs: eachLike(kennel.dogs[0])
-    });
+    dogs: eachLike({name: "my dog"})
+  });
 
   before(() =>
     provider.setup().then(opts => {
@@ -67,7 +61,7 @@ describe("The Dog API", () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: kennelWithMatchers,
+          body: kennel,
         })
 
       return provider.addInteraction(interaction)
@@ -75,37 +69,7 @@ describe("The Dog API", () => {
 
     it("returns the correct response", done => {
       dogService.getMeDogs().then((response: any) => {
-        expect(response.data[0]).to.deep.eq(kennel)
-        done()
-      }, done)
-    })
-  })
-
-  describe("get /dogs using object pattern", () => {
-    before(() => {
-      return provider.addInteraction({
-        state: "i have a list of dogs",
-        uponReceiving: "a request for all dogs with the object pattern",
-        withRequest: {
-          method: "GET",
-          path: "/dogs",
-          headers: {
-            Accept: "application/json",
-          },
-        },
-        willRespondWith: {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: EXPECTED_BODY,
-        },
-      })
-    })
-
-    it("returns the correct response", done => {
-      dogService.getMeDogs().then((response: any) => {
-        expect(response.data[0]).to.deep.eq(dogExample)
+        expect(response.data[0]).to.deep.eq(extractPayload(kennel))
         done()
       }, done)
     })
