@@ -28,12 +28,17 @@ describe("The Dog API", () => {
     pactfileWriteMode: "merge",
   })
 
-  const kennelExample: Kennel =
+  const kennel: Kennel =
   {
     name: "my kennel",
-    dogs: eachLike<Dog>({name: "my dog"})
+    dogs: [{name: "my dog"}]
   };
-  const EXPECTED_BODY = like(kennelExample)
+
+  const kennelWithMatchers = like(
+    {
+      ...kennel,
+      dogs: eachLike(kennel.dogs[0])
+    });
 
   before(() =>
     provider.setup().then(opts => {
@@ -62,7 +67,7 @@ describe("The Dog API", () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: EXPECTED_BODY,
+          body: kennelWithMatchers,
         })
 
       return provider.addInteraction(interaction)
@@ -70,7 +75,7 @@ describe("The Dog API", () => {
 
     it("returns the correct response", done => {
       dogService.getMeDogs().then((response: any) => {
-        expect(response.data[0]).to.deep.eq(kennelExample)
+        expect(response.data[0]).to.deep.eq(kennel)
         done()
       }, done)
     })
